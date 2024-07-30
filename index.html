@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type-Ahead Address Lookup</title>
+    <style>
+        body {
+            font-family: 'Aptos', sans-serif;
+        }
+        .output-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .output-box {
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: 45%;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 16px;
+        }
+        .output-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .details-box {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: 100%;
+            font-size: 16px;
+        }
+        .details-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .split-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .split-box {
+            width: 48%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 16px;
+            height: 150px;
+            overflow-y: auto;
+        }
+        .split-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .address-item {
+            cursor: pointer;
+            padding: 5px;
+        }
+        .address-item:hover {
+            background-color: #d3d3d3; /* Highlight color */
+        }
+    </style>
+</head>
+<body>
+    <h1>Loqate Australia</h1>
+    <input type="text" id="address-input" placeholder="Start typing an address..." autocomplete="off">
+    <div class="split-container">
+        <div class="split-box">
+            <div class="split-header"><a href="https://data.gov.au/data/dataset/geocoded-national-address-file-g-naf" target="_blank">PSMA's G-NAF (Geocoded National Address File)</a></div>
+            <div id="output1" class="output-content"></div>
+        </div>
+        <div class="split-box">
+            <div class="split-header"><a href="https://auspost.com.au/content/dam/auspost_corp/media/documents/australia-post-data-guide.pdf" target="_blank">Australia Post's AUPAF (Postal Address File)</a></div>
+            <div id="output2" class="output-content"></div>
+        </div>
+    </div>
+    <div class="details-box">
+        <div class="details-header">Find API Response</div>
+        <div id="address-details"></div>
+    </div>
+    <div class="details-box">
+        <div class="details-header">Retrieve API Response</div>
+        <div id="retrieve-details"></div>
+    </div>
+
+    <script>
+        async function fetchAddressesFromLoqateHRA(query, sourceOfTruth) {
+            const url = 'https://hosted.mastersoftgroup.com/harmony/rest/v2/address/find';
+            const payload = {
+                "payload": [{ "country": "AU", "fullAddress": query }],
+                "sourceOfTruth": sourceOfTruth,
+                "featureOptions": { "exposeAttributes": "1", "singleLineHitNumber": "20", "displayGnafLot": "1", "suppressLot": "1" }
+            };
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('csuser:pMaZHhtsHp4TlNa3OWTbsRwOOwIesrmG') // Replace with your actual credentials
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.payload.map(item => ({ fullAddress: item.fullAddress, details: item })) || [];
+                } else {
+                    console.error('Error fetching addresses from Loqate HRA:', response.status, response.statusText);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                return [];
+            }
+        }
+
+        async function fetchRetrieveDetailsHRA(id, sourceOfTruth) {
+            const url = 'https://hosted.mastersoftgroup.com/harmony/rest/v2/address/retrieve';
+            const payload = {
+                "payload": [{ "id": id }],
+                "featureOptions": { "exposeAttributes": "7", "displayGnafLot": "1", "suppressLot": "1" }
+            };
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + btoa('csuser:pMaZHhtsHp4TlNa3OWTbsRwOOwIesrmG') // Replace with your actual credentials
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Retrieve API response HRA:', data); // Log to check the response
+                    return data.payload || [];
+                } else {
+                    console.error('Error fetching retrieve details HRA:', response.status, response.statusText);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                return [];
+            }
+        }
+
+        function displayAddresses(query, outputId, sourceOfTruth) {
+            fetchAddressesFromLoqateHRA(query, sourceOfTruth)
+                .then(addresses => {
+                    const outputDiv = document.getElementById(outputId);
+                    outputDiv.innerHTML = '';
+
+                    if (addresses.length === 0) {
+                        outputDiv.style.display = 'none';
+                        return;
+                    }
+
+                    addresses.forEach(address => {
+                        const p = document.createElement('p');
+                        p.textContent = address.fullAddress;
+                        p.className = 'address-item';
+                        p.addEventListener('click', async function() {
+                            displayAddressDetails(address.details);
+                            const retrieveDetails = await fetchRetrieveDetailsHRA(address.details.id, sourceOfTruth);
+                            displayRetrieveDetails(retrieveDetails);
+                        });
+                        outputDiv.appendChild(p);
+                    });
+
+                    outputDiv.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching addresses:', error);
+                });
+        }
+
+        function displayAddressDetails(details) {
+            const detailsDiv = document.getElementById('address-details');
+            detailsDiv.innerHTML = '<pre>' + JSON.stringify(details, null, 2) + '</pre>';
+        }
+
+        function displayRetrieveDetails(details) {
+            const detailsDiv = document.getElementById('retrieve-details');
+            detailsDiv.innerHTML = '<pre>' + JSON.stringify(details, null, 2) + '</pre>';
+        }
+
+        document.getElementById('address-input').addEventListener('input', function() {
+            const query = this.value.trim();
+            if (query.length > 2) {
+                displayAddresses(query, 'output1', 'GNAF');
+                displayAddresses(query, 'output2', 'AUPAF');
+            } else {
+                document.getElementById('output1').style.display = 'none';
+                document.getElementById('output2').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
