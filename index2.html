@@ -38,7 +38,7 @@
         .output-box {
             padding: 10px;
             border: 1px solid #ccc;
-            width: 45%;
+            width: 30%;
             height: 150px;
             overflow-y: auto;
             font-size: 16px;
@@ -101,8 +101,12 @@
                 <div id="output1" class="output-content"></div>
             </div>
             <div class="split-box">
-                <div class="split-header"><a href="https://www.nzpost.co.nz/business/shipping-in-nz/quality-addressing/nz-address-dataset" target="_blank">NZ Post's NZPAF (NZ Address Dataset)</a></div>
+                <div class="split-header"><a href="https://www.nzpost.co.nz/business/shipping-in-nz/quality-addressing/nz-address-dataset" target="_blank">NZ Post's NZAD (NZ Address Dataset)</a></div>
                 <div id="output2" class="output-content"></div>
+            </div>
+            <div class="split-box">
+                <div class="split-header"><a href="https://www.nationalmap.co.nz/cnar" target="_blank">NationalMap NZ's CNAR (Comprehensive National Address Register)</a></div>
+                <div id="output3" class="output-content"></div>
             </div>
         </div>
         <div class="details-box">
@@ -132,7 +136,7 @@
                 if (tab.getAttribute('data-tab') === 'australia') {
                     window.location.href = 'index.html';
                 } else {
-                    document.getElementById('australia').classList.add('active');
+                    document.getElementById('new-zealand').classList.add('active');
                 }
             });
         });
@@ -140,7 +144,7 @@
         async function fetchAddressesFromLoqateHRA(query, sourceOfTruth) {
             const url = 'https://hosted.mastersoftgroup.com/harmony/rest/v2/address/find';
             const payload = {
-                "payload": [{ "country": "AU", "fullAddress": query }],
+                "payload": [{ "country": "NZ", "fullAddress": query }],
                 "sourceOfTruth": sourceOfTruth,
                 "featureOptions": { "exposeAttributes": "1", "singleLineHitNumber": "20", "displayGnafLot": "1", "suppressLot": "1" }
             };
@@ -253,9 +257,11 @@
             if (query.length > 2) {
                 displayAddresses(query, 'output1', 'NZPAF');
                 displayAddresses(query, 'output2', 'NZAD');
+                displayAddresses(query, 'output3', 'CNAR');
             } else {
                 document.getElementById('output1').style.display = 'none';
                 document.getElementById('output2').style.display = 'none';
+                document.getElementById('output3').style.display = 'none';
             }
         });
     </script>
