@@ -164,7 +164,14 @@
 
                     addresses.forEach(address => {
                         const p = document.createElement('p');
-                        p.textContent = address.fullAddress;
+                        let addressText = address.fullAddress;
+
+                        // Check if the address type is "AddressIntlEx" and append 'ADX'
+                        if (address.details._type === "AddressIntlEx") {
+                            addressText += ' (ADX)';
+                        }
+
+                        p.textContent = addressText;
                         p.className = 'address-item';
                         p.addEventListener('click', async function() {
                             displayAddressDetails(address.details);
